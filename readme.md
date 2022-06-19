@@ -20,7 +20,7 @@ go get -u github.com/postlink/alfa
 ## 命令行工具安装
 
 ```
-go get -u github.com/postlink/alfa/cmd/buck
+go get -u github.com/postlink/alfa/cmd/alfa
 ```
 
 ## 快速上手
