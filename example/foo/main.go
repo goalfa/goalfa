@@ -37,14 +37,14 @@ func main() {
 		Makers: map[string]exporter.Maker{
 			"python": exporter.GoMaker{},
 		},
-		BasicTypes: []exporter.BasicType{
-			{
-				Elem: service.CID{},
-				Mapping: map[string]exporter.Library{
-					"ts": {Type: "string"},
-				},
-			},
-		},
+		//BasicTypes: []exporter.BasicType{
+		//	{
+		//		Elem: service.CID{},
+		//		Mapping: map[string]exporter.Library{
+		//			"ts": {Type: "string"},
+		//		},
+		//	},
+		//},
 	})
 
 	app.Run(":8080")

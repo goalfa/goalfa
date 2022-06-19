@@ -1,0 +1,47 @@
+{
+    methods: [
+        {
+            name: Register,
+            in: {
+                name: RegisterIn,
+                param: RegisterIn,
+                type: RegisterIn,
+                array: true,
+            },
+            out : {
+                 type: int,
+                 array: false
+            }
+            out: Register
+        }
+    ],
+    structs: [
+        {
+            type: RegisterIn,
+            package: "...",
+            fields: [
+                {
+                    name: Age,
+                    params: age,
+                    type: int
+                },
+                {
+                    name: Users
+                    type: User
+                    array: true
+                    param: users
+                }
+            ]
+        },
+        {
+            type: User,
+            package: '...',
+            fields: [
+                {
+                   name: Name,
+                   type: stirng
+                }
+            ]
+        }
+    ]
+}

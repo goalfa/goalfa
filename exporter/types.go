@@ -108,19 +108,19 @@ type Struct struct {
 }
 
 type Field struct {
-	Name        string `json:"name,omitempty"`
-	Param       string `json:"param,omitempty"`
-	Label       string `json:"label,omitempty"`
-	Type        string `json:"type,omitempty"`
-	Description string `json:"description,omitempty"`
-	IsArray     bool   `json:"array,omitempty"`
-	IsStruct    bool   `json:"struct,omitempty"`
-	IsBasic     bool   `json:"isBasic"`
-	Origin      string `json:"origin,omitempty"` // 原始类型
-	//Fields      []*Field   `json:"fields,omitempty"`    // 描述 IsStruct 成员变量
-	Elem      *Field     `json:"elem,omitempty"`      // 描述 Slice/IsArray 子元素
-	Validator *Validator `json:"validator,omitempty"` // 定义校验器
-	Form      string     `json:"form,omitempty"`      // 定义表单组件
+	Name        string     `json:"name,omitempty"`
+	Param       string     `json:"param,omitempty"`
+	Label       string     `json:"label,omitempty"`
+	Type        string     `json:"type"`
+	Description string     `json:"description,omitempty"`
+	IsArray     bool       `json:"isArray,omitempty"`
+	IsStruct    bool       `json:"isStruct,omitempty"`
+	IsBasic     bool       `json:"isBasic"`
+	Origin      string     `json:"origin,omitempty"`    // 原始类型
+	Fields      []*Field   `json:"fields,omitempty"`    // 记录匿名对象
+	Elem        *Field     `json:"elem,omitempty"`      // 描述 Slice/IsArray 子元素
+	Validator   *Validator `json:"validator,omitempty"` // 定义校验器
+	Form        string     `json:"form,omitempty"`      // 定义表单组件
 }
 
 func (p Field) Fork() *Field {

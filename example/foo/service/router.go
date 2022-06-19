@@ -12,18 +12,10 @@ type FooRouter struct {
 
 func (f FooRouter) Routes() []alfa.Route {
 	return []alfa.Route{
-		{Method: alfa.Get, Handler: f.service.QueryPost},
-		//{Method: alfa.Get, Handler: f.service.Ping, Description: "测试"},
-		//{Method: alfa.Get, Handler: f.service.GetHtml},
-		//{Method: alfa.Get, Handler: f.service.GetText},
-		//{Method: alfa.Get, Handler: f.service.GetInt},
-		//{Method: alfa.Get, Handler: f.service.GetInt32},
-		//{Method: alfa.Get, Handler: f.service.GetDecimal},
-		//{Method: alfa.Get, Handler: f.service.GetBool},
-		//{Handler: f.service.AddPost},
-		//{Handler: f.service.TestGetArray},
-		//{Handler: f.service.TestPostArray},
-		//{Handler: f.service.Ping2},
-		//{Handler: f.service.PostShop},
+		{Handler: f.service.Ping},
+		{Handler: f.service.SaveUser},
+		//{Method: alfa.Get, Path: "/GetUserById/:id", Handler: f.service.GetUserById},
+		{Method: alfa.Get, Handler: f.service.GetUserByIdStruct},
+		{Handler: f.service.SaveArticle},
 	}
 }

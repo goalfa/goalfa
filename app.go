@@ -11,6 +11,7 @@ import (
 	"reflect"
 	"runtime"
 	"strings"
+	"time"
 )
 
 func New() *App {
@@ -48,6 +49,18 @@ func (p *App) SetExporter(addr string, options *exporter.Options) {
 			Elem: decimal.Decimal{},
 			Mapping: map[string]exporter.Library{
 				"ts": {Type: "string"},
+			},
+		},
+		{
+			Elem: time.Time{},
+			Mapping: map[string]exporter.Library{
+				"ts": {Type: "string"},
+			},
+		},
+		{
+			Elem: time.Duration(0),
+			Mapping: map[string]exporter.Library{
+				"ts": {Type: "number"},
 			},
 		},
 		{
@@ -119,7 +132,7 @@ func (p *App) isHandler(t reflect.Type) error {
 		return fmt.Errorf("handler expect type func")
 	}
 	if t.NumIn() != 1 && t.NumIn() != 2 {
-		return fmt.Errorf("max 2 parameters expected")
+		return fmt.Errorf("max 2 input parameters expected")
 	}
 	if t.NumIn() == 2 {
 		in := t.In(1)
@@ -130,11 +143,11 @@ func (p *App) isHandler(t reflect.Type) error {
 			in = in.Elem()
 		}
 		if in.Kind() != reflect.Struct {
-			return fmt.Errorf("second input parameter only acept struct")
+			return fmt.Errorf("input parameter only acept struct")
 		}
 	}
 	if !p.isContext(t.In(0)) {
-		return fmt.Errorf("first input parameter expect type context.Context")
+		return fmt.Errorf("input first parameter expect type context.Context")
 	}
 	if t.NumOut() != 1 && t.NumOut() != 2 {
 		return fmt.Errorf("max 2 output parameters expected")
@@ -149,7 +162,7 @@ func (p *App) isHandler(t reflect.Type) error {
 func (p *App) parseHandler(handler interface{}) (v reflect.Value, err error) {
 	v = reflect.ValueOf(handler)
 	if err = p.isHandler(v.Type()); err != nil {
-		err = fmt.Errorf("unexpect handler: %s", v.Type())
+		err = fmt.Errorf("unexpect handler: %s: %s", v.Type(), err)
 		return
 	}
 	return
@@ -226,15 +239,13 @@ func (p *App) proxyHandler(handler reflect.Value) gin.HandlerFunc {
 			var err error
 			in, err = bind(c, handler.Type().In(1))
 			if err != nil {
-				// TODO 响应 Error 报错
-				c.Error(err)
+				_ = c.Error(err)
 				return
 			}
 			out = handler.Call([]reflect.Value{reflect.ValueOf(ctx), in})
 		} else {
 			out = handler.Call([]reflect.Value{reflect.ValueOf(ctx)})
 		}
-
 		l := len(out)
 		if !out[l-1].IsNil() {
 			c.JSON(http.StatusInternalServerError, &Status{

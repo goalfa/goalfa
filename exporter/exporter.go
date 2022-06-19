@@ -41,7 +41,9 @@ func (p *Exporter) Init(version string, methods []*Method, models *Structs) {
 }
 
 func (p Exporter) Run() {
-	engine := gin.Default()
+	//engine := gin.Default()
+	engine := gin.New()
+	engine.Use(gin.Recovery(), gin.ErrorLogger())
 	engine.Use(cors.New(cors.Config{
 		AllowOrigins:     []string{"*"},
 		AllowMethods:     []string{"*"},
@@ -50,6 +52,8 @@ func (p Exporter) Run() {
 		AllowCredentials: true,
 		MaxAge:           12 * time.Hour,
 	}))
+	//engine.
+	gin.SetMode(gin.ReleaseMode)
 	engine.GET("/sdk", p.sdkHandler)
 	engine.GET("/protocol", p.protocolHandler)
 	engine.StaticFS("/exporter", assets.Root)
@@ -235,68 +239,72 @@ func (p *Exporter) initMakers() {
 func (p *Exporter) ReactField(elem reflect.Type, name, param, label string, validator *Validator) *Field {
 
 	elem = utils.TypeElem(elem)
-	fieldType, isBasic, isSturct := p.reflectFieldType(elem)
-	//fieldPackage := elem.PkgPath()
-
-	//if p.structs.HasStruct(typ, pkg) {
-	//	return
-	//}
 
 	field := new(Field)
 	field.Name = name
 	field.Param = param
 	field.Label = label
-	//field.Package = fieldPackage
 	field.Validator = validator
+
+	fieldType, isBasic, isStruct, isArray := p.reflectFieldType(field, elem)
 	field.Type = fieldType
-	field.IsStruct = isSturct
+	field.IsStruct = isStruct
 	field.IsBasic = isBasic
+	field.IsArray = isArray
 
 	return field
 }
 
-func (p *Exporter) reflectFieldType(elem reflect.Type) (typeName string, isBasic, isStruct bool) {
+func (p *Exporter) reflectFieldType(field *Field, elem reflect.Type) (typeName string, isBasic, isStruct, isArray bool) {
 	basicType := p.getBasicType(elem)
 	if basicType != nil {
-		return elem.String(), true, false
+		return elem.String(), true, false, false
+	} else if elem.Kind() == reflect.Struct {
+		return p.ReflectStruct(field, elem, 0), false, true, false
+	} else if elem.Kind() == reflect.Slice || elem.Kind() == reflect.Array {
+		_elem := utils.TypeElem(elem.Elem())
+		_field := p.ReactField(_elem, "", "", "", nil)
+		return _field.Type, false, true, true
 	}
-	if elem.Kind() == reflect.Struct {
-		return p.ReflectStruct(elem, 0), false, true
-	}
-	return p.getType(elem), false, false
+	return p.getType(elem), false, false, false
 }
 
 // ReflectStruct 反射转换输入输出的字段信息
-func (p *Exporter) ReflectStruct(elem reflect.Type, depth int) string {
+func (p *Exporter) ReflectStruct(field *Field, elem reflect.Type, depth int) string {
 
 	elem = utils.TypeElem(elem)
 
-	if elem.Kind() != reflect.Struct {
-		return ""
-	}
-
 	name := elem.Name()
 	pkg := elem.PkgPath()
+	fields := make([]*Field, 0)
 
-	if v := p.structs.GetStruct(pkg, name); v != nil {
-		return v.Name
+	if name != "" {
+		if v := p.structs.GetStruct(pkg, name); v != nil {
+			return v.Name
+		}
 	}
 
-	s := new(Struct)
-	s.Name = p.structs.GetStructName(name)
-	s.Package = pkg
-	p.structs.Add(s)
 	for i := 0; i < elem.NumField(); i++ {
 		item := elem.Field(i)
 		param := p.getParam(item)
 		label := p.getFieldLabel(item)
 		validator := p.getFieldValidator(item)
-		s.Fields = append(
-			s.Fields,
+		fields = append(
+			fields,
 			p.ReactField(item.Type, item.Name, param, label, validator),
 		)
 	}
-	return s.Name
+	if name != "" {
+		s := new(Struct)
+		s.Name = p.structs.GetStructName(name)
+		s.Package = pkg
+		p.structs.Add(s)
+		s.Fields = fields
+		return s.Name
+	}
+
+	field.Fields = fields
+	return ""
 }
 
 func (p Exporter) getBasicType(t reflect.Type) *BasicType {
