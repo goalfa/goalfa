@@ -26,7 +26,7 @@ func main() {
 	app.AddRouter(service.NewFooRouter(new(service.FooMock)))
 
 	// App 导出器配置
-	app.SetExporter(":9090", &exporter.Options{
+	app.SetExporter(":9090", &exporter.Settings{
 		Project: "Foo",
 		Envs: []exporter.Env{
 			{

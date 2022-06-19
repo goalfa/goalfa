@@ -2,7 +2,7 @@ package exporter
 
 import "fmt"
 
-type Options struct {
+type Settings struct {
 	Project    string           `json:"project"`
 	Envs       []Env            `json:"envs"`
 	BasicTypes []BasicType      `json:"-"`

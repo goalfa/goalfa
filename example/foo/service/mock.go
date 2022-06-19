@@ -14,10 +14,7 @@ func (f FooMock) SaveArticle(ctx context.Context, article *Article) (id int, err
 	return
 }
 
-func (f FooMock) GetUserByIdStruct(ctx context.Context, in struct {
-	Id   int
-	Name string
-}) (err error) {
+func (f FooMock) GetUserByIdStruct(ctx context.Context, in struct{ Id int }) (err error) {
 	d, _ := json.Marshal(in)
 	fmt.Println("GetUserByIdStruct In", string(d))
 	return

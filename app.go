@@ -43,7 +43,7 @@ func (p *App) SetEngine(engine *gin.Engine) {
 	p.engine = engine
 }
 
-func (p *App) SetExporter(addr string, options *exporter.Options) {
+func (p *App) SetExporter(addr string, options *exporter.Settings) {
 	basicTypes := []exporter.BasicType{
 		{
 			Elem: decimal.Decimal{},
@@ -77,7 +77,7 @@ func (p *App) SetExporter(addr string, options *exporter.Options) {
 		},
 	}
 	if options == nil {
-		options = new(exporter.Options)
+		options = new(exporter.Settings)
 	}
 	options.BasicTypes = append(basicTypes, options.BasicTypes...)
 	p.exporter = exporter.NewExporter(addr, options)

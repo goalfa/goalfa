@@ -4,18 +4,17 @@ import (
 	"fmt"
 	"github.com/datafony/alfa/assets"
 	"github.com/datafony/alfa/utils"
-	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/gozelle/_log"
 	"github.com/gozelle/_log/wrap"
 	"github.com/ttacon/chalk"
+	"log"
 	"net/http"
 	"reflect"
 	"strings"
-	"time"
 )
 
-func NewExporter(addr string, options *Options) *Exporter {
+func NewExporter(addr string, options *Settings) *Exporter {
 	e := &Exporter{addr: addr, options: options}
 	e.structs = new(Structs)
 	e.initBasicTypes()
@@ -26,7 +25,7 @@ func NewExporter(addr string, options *Options) *Exporter {
 type Exporter struct {
 	version string
 	addr    string
-	options *Options
+	options *Settings
 	Name    string
 	Package string
 	methods []*Method
@@ -40,20 +39,47 @@ func (p *Exporter) Init(version string, methods []*Method, models *Structs) {
 	p.methods = methods
 }
 
+func Cors() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		method := c.Request.Method
+		origin := c.Request.Header.Get("Origin") //请求头部
+		if origin != "" {
+			//接收客户端发送的origin （重要！）
+			c.Writer.Header().Set("Access-Control-Allow-Origin", origin)
+			//服务器支持的所有跨域请求的方法
+			c.Header("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE,UPDATE")
+			//允许跨域设置可以返回其他子段，可以自定义字段
+			c.Header("Access-Control-Allow-Headers", "Authorization, Content-Length, X-CSRF-Token, Token,session")
+			// 允许浏览器（客户端）可以解析的头部 （重要）
+			c.Header("Access-Control-Expose-Headers", "Content-Length, Access-Control-Allow-Origin, Access-Control-Allow-Headers")
+			//设置缓存时间
+			c.Header("Access-Control-Max-Age", "172800")
+			//允许客户端传递校验信息比如 cookie (重要)
+			c.Header("Access-Control-Allow-Credentials", "true")
+		}
+
+		//允许类型校验
+		if method == "OPTIONS" {
+			c.JSON(http.StatusOK, "ok!")
+		}
+
+		defer func() {
+			if err := recover(); err != nil {
+				log.Printf("Panic info is: %v", err)
+			}
+		}()
+
+		c.Next()
+	}
+}
+
 func (p Exporter) Run() {
-	//engine := gin.Default()
-	engine := gin.New()
-	engine.Use(gin.Recovery(), gin.ErrorLogger())
-	engine.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"*"},
-		AllowMethods:     []string{"*"},
-		AllowHeaders:     []string{"Origin"},
-		ExposeHeaders:    []string{"Content-Length"},
-		AllowCredentials: true,
-		MaxAge:           12 * time.Hour,
-	}))
+	// 自定义 gin 驱动
+	engine := gin.Default()
+	//engine.Use(cors.New(config))
+	engine.Use(Cors())
 	//engine.
-	gin.SetMode(gin.ReleaseMode)
+	gin.SetMode(gin.DebugMode)
 	engine.GET("/sdk", p.sdkHandler)
 	engine.GET("/protocol", p.protocolHandler)
 	engine.StaticFS("/exporter", assets.Root)
@@ -107,18 +133,18 @@ func (p Exporter) sdkHandler(c *gin.Context) {
 }
 
 type ProtocolOutput struct {
-	Version string       `json:"version"`
-	Options *Options     `json:"options"`
-	Methods []*Method    `json:"methods"`
-	Basics  []*BasicType `json:"basics,omitempty"`
-	Structs []*Struct    `json:"structs"`
+	Version  string       `json:"version"`
+	Settings *Settings    `json:"options"`
+	Methods  []*Method    `json:"methods"`
+	Basics   []*BasicType `json:"basics,omitempty"`
+	Structs  []*Struct    `json:"structs"`
 }
 
 // 导出接口描述协议
 func (p Exporter) protocolHandler(c *gin.Context) {
 	out := new(ProtocolOutput)
 	out.Version = p.version
-	out.Options = p.options
+	out.Settings = p.options
 	out.Methods = p.convertMethodTypes(c.Query("lang"))
 	basics := new(BasicTypes)
 	for _, v := range p.basics {
@@ -151,9 +177,9 @@ func (p Exporter) toTsProtocolFieldType(field *Field) {
 	}
 	field.Origin = field.Type
 	field.Type = tsProtocolTypeConverter(field.Type)
-	//for _, v := range field.Fields {
-	//	p.toTsProtocolFieldType(v)
-	//}
+	for _, v := range field.Fields {
+		p.toTsProtocolFieldType(v)
+	}
 	if field.Elem != nil {
 		p.toTsProtocolFieldType(field.Elem)
 	}
@@ -189,53 +215,6 @@ func (p *Exporter) initMakers() {
 	}
 }
 
-// ReflectFields 反射转换输入输出的字段信息
-//func (p *Exporter) ReflectFields(name, param, label string, validator *Validator, t reflect.Name) (field *Field) {
-//
-//	t = utils.TypeElem(t)
-//
-//	typ := p.reflectFieldType(t)
-//	pkg := t.PkgPath()
-//
-//	if p.structs.HasStruct(typ, pkg) {
-//		return
-//	}
-//
-//	field = new(Field)
-//	field.Name = typ
-//	field.Name = name
-//	field.Param = param
-//	field.Label = label
-//	//field.Package = pkg
-//	field.Validator = validator
-//
-//	//p.structs.Add(field)
-//
-//	if t.Kind() == reflect.IsStruct && p.getBasicType(t) == nil {
-//		field.IsStruct = true
-//		for i := 0; i < t.NumField(); i++ {
-//			sf := t.Field(i)
-//			_name := sf.Name
-//			_param := p.getParam(sf)
-//			_label := p.getFieldLabel(sf)
-//			_validator := p.getFieldValidator(sf)
-//			_field := p.ReflectFields(_name, _param, _label, _validator, sf.Name)
-//			if _field != nil && (_field.IsStruct || _field.Nested) {
-//				field.Nested = true
-//			}
-//			field.Fields = append(field.Fields, _field)
-//		}
-//	} else if t.Kind() == reflect.Slice || t.Kind() == reflect.IsArray {
-//		field.IsArray = true
-//		field.Elem = p.ReflectFields("", "", label, validator, t.Elem())
-//		if field.Elem != nil && (field.Elem.IsStruct || field.Elem.Nested) {
-//			field.Nested = true
-//		}
-//	}
-//
-//	return
-//}
-
 func (p *Exporter) ReactField(elem reflect.Type, name, param, label string, validator *Validator) *Field {
 
 	elem = utils.TypeElem(elem)
@@ -245,7 +224,6 @@ func (p *Exporter) ReactField(elem reflect.Type, name, param, label string, vali
 	field.Param = param
 	field.Label = label
 	field.Validator = validator
-
 	fieldType, isBasic, isStruct, isArray := p.reflectFieldType(field, elem)
 	field.Type = fieldType
 	field.IsStruct = isStruct
@@ -277,13 +255,11 @@ func (p *Exporter) ReflectStruct(field *Field, elem reflect.Type, depth int) str
 	name := elem.Name()
 	pkg := elem.PkgPath()
 	fields := make([]*Field, 0)
-
 	if name != "" {
 		if v := p.structs.GetStruct(pkg, name); v != nil {
 			return v.Name
 		}
 	}
-
 	for i := 0; i < elem.NumField(); i++ {
 		item := elem.Field(i)
 		param := p.getParam(item)
@@ -302,7 +278,6 @@ func (p *Exporter) ReflectStruct(field *Field, elem reflect.Type, depth int) str
 		s.Fields = fields
 		return s.Name
 	}
-
 	field.Fields = fields
 	return ""
 }

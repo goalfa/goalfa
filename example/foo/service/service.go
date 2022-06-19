@@ -9,10 +9,7 @@ type FooService interface {
 	Ping(ctx context.Context) (out string, err error)
 	SaveUser(ctx context.Context, user User) (id int, err error)
 	GetUserById(ctx context.Context, id int) (user User, err error)
-	GetUserByIdStruct(ctx context.Context, in struct {
-		Id   int
-		Name string
-	}) (err error)
+	GetUserByIdStruct(ctx context.Context, in struct{ Id int }) (err error)
 	SaveArticle(ctx context.Context, article *Article) (id int, err error)
 	//GetArticlesByTags(ctx context.Context, tags []string) (articles []Article, err error)
 	//GetUserArticlesByTags(ctx context.Context, userId int, tags []string) (articles []Article, err error)
