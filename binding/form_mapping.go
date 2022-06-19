@@ -12,8 +12,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/postlink/alfa/internal/bytesconv"
-	"github.com/postlink/alfa/internal/json"
+	"github.com/datafony/alfa/internal/bytesconv"
+	"github.com/datafony/alfa/internal/json"
 )
 
 var errUnknownType = errors.New("unknown type")

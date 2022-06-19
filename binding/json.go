@@ -10,7 +10,7 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/postlink/alfa/internal/json"
+	"github.com/datafony/alfa/internal/json"
 )
 
 // EnableDecoderUseNumber is used to call the UseNumber method on the JSON

@@ -1,6 +1,6 @@
 package service
 
-import alfa "github.com/postlink/alfa"
+import alfa "github.com/datafony/alfa"
 
 func NewFooRouter(service FooService) *FooRouter {
 	return &FooRouter{service: service}

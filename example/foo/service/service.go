@@ -2,7 +2,7 @@ package service
 
 import (
 	"context"
-	alfa "github.com/postlink/alfa"
+	alfa "github.com/datafony/alfa"
 	"github.com/shopspring/decimal"
 )
 

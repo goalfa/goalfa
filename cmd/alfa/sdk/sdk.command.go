@@ -4,7 +4,7 @@ import (
 	"bufio"
 	"encoding/json"
 	"fmt"
-	"github.com/postlink/alfa/exporter"
+	"github.com/datafony/alfa/exporter"
 	"github.com/spf13/cobra"
 	"io/ioutil"
 	"net/http"

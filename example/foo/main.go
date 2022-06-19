@@ -1,11 +1,11 @@
 package main
 
 import (
+	alfa "github.com/datafony/alfa"
+	"github.com/datafony/alfa/example/foo/service"
+	"github.com/datafony/alfa/exporter"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
-	alfa "github.com/postlink/alfa"
-	"github.com/postlink/alfa/example/foo/service"
-	"github.com/postlink/alfa/exporter"
 )
 
 func main() {

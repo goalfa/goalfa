@@ -2,8 +2,8 @@ package main
 
 import (
 	"fmt"
-	"github.com/postlink/alfa/assets"
-	"github.com/postlink/alfa/cmd/alfa/sdk"
+	"github.com/datafony/alfa/assets"
+	"github.com/datafony/alfa/cmd/alfa/sdk"
 	"github.com/spf13/cobra"
 	"log"
 	"net/http"

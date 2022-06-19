@@ -1,4 +1,4 @@
-module github.com/postlink/alfa
+module github.com/datafony/alfa
 
 go 1.16
 

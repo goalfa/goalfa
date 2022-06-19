@@ -3,9 +3,9 @@ package alfa
 import (
 	"context"
 	"fmt"
+	"github.com/datafony/alfa/binding"
+	"github.com/datafony/alfa/exporter"
 	"github.com/gin-gonic/gin"
-	"github.com/postlink/alfa/binding"
-	"github.com/postlink/alfa/exporter"
 	"github.com/shopspring/decimal"
 	"net/http"
 	"reflect"

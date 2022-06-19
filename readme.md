@@ -14,13 +14,13 @@
 ## 包安装
 
 ```
-go get -u github.com/postlink/alfa
+go get -u github.com/datafony/alfa
 ```
 
 ## 命令行工具安装
 
 ```
-go get -u github.com/postlink/alfa/cmd/buck
+go get -u github.com/datafony/alfa/cmd/buck
 ```
 
 ## 快速上手
@@ -37,9 +37,9 @@ package main
 import (
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
-	"github.com/postlink/alfa"
-	"github.com/postlink/alfa/example/foo/service"
-	"github.com/postlink/alfa/exporter"
+	"github.com/datafony/alfa"
+	"github.com/datafony/alfa/example/foo/service"
+	"github.com/datafony/alfa/exporter"
 )
 
 func main() {
@@ -84,7 +84,7 @@ func main() {
 package service
 
 import (
-	"github.com/postlink/alfa"
+	"github.com/datafony/alfa"
 )
 
 func NewFooRouter(service FooService) *FooRouter {
