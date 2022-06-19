@@ -1,4 +1,4 @@
-# Buck
+# Alfa
 
 为了降低前后端交付成本的 API 框架。
 
@@ -20,7 +20,7 @@ go get -u github.com/datafony/alfa
 ## 命令行工具安装
 
 ```
-go get -u github.com/datafony/alfa/cmd/buck
+go get -u github.com/postlink/alfa/cmd/alfa
 ```
 
 ## 快速上手
@@ -53,8 +53,8 @@ func main() {
 	engine := gin.Default()
 	engine.Use(cors.New(config))
 	
-	// 配置 buck 实例
-	api := buck.New()
+	// 配置 alfa 实例
+	api := alfa.New()
 	api.SetVersion("1.0.0")
 	api.SetEngine(engine)
 	api.AddRouter(service.NewFooRouter(new(service.FooMock)))
@@ -95,10 +95,10 @@ type FooRouter struct {
 	service FooService
 }
 
-func (f FooRouter) Routes() []buck.Route {
-	return []buck.Route{
-		{Method: buck.Get, Handler: f.service.Ping},
-		{Method: buck.Get, Handler: f.service.QueryPost},
+func (f FooRouter) Routes() []alfa.Route {
+	return []alfa.Route{
+		{Method: alfa.Get, Handler: f.service.Ping},
+		{Method: alfa.Get, Handler: f.service.QueryPost},
 		{Handler: f.service.AddPost},
 	}
 }
@@ -192,21 +192,21 @@ func (ctx context.Context [, in struct])([out interface{},] err error)
 
 ## Router 定义
 
-Router 用来描述服务的 API 匹配关系，同时可以在 Router 中定义中间件、前缀等。实现 `buck.Router` 即可实现一个 `Router`。
+Router 用来描述服务的 API 匹配关系，同时可以在 Router 中定义中间件、前缀等。实现 `alfa.Router` 即可实现一个 `Router`。
 
 ```go
 type UserRouter struct {
 service UserService
 }
 
-func (u UserRouter) Routers() []buck.Route {
-return []buck.Route{
+func (u UserRouter) Routers() []alfa.Route {
+return []alfa.Route{
 {
 Prefix: "/api",             // 定义路由分组前缀
 Middleware: SomeMiddleware, // 定义分组中间件
-Children: []buck.Route{
+Children: []alfa.Route{
 { Handler: p.service.Register },               // 默认采用 Post 方法，Handler 方法名作为路径    
-{ Method: buck.Get, Handler: p.service.Ping }, // 指定请求方法
+{ Method: alfa.Get, Handler: p.service.Ping }, // 指定请求方法
 { Path: "/login", Handler: p.service.Login },  // 指定请求路径
 },
 }    
