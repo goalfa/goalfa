@@ -337,14 +337,14 @@ func (p *App) addMethod(method, path, description string, info HandlerInfo, hand
 		Description: description,
 	}
 	if handler.Type().NumIn() > 1 {
-		//p.exporter.ReflectFields("", "", "", nil, )
-		//p.exporter.ReflectStruct(handler.Name().In(1), 0)
 		m.Input = p.exporter.ReactField(
 			handler.Type().In(1),
 			"", "", "", nil)
 	}
 	if handler.Type().NumOut() > 1 {
-		//p.exporter.ReflectFields("", "", "", nil, handler.Name().Out(0))
+		m.Output = p.exporter.ReactField(
+			handler.Type().Out(0),
+			"", "", "", nil)
 	}
 	p.methods = append(p.methods, m)
 }
