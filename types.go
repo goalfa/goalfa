@@ -31,15 +31,27 @@ type Register interface {
 	Use(middleware ...gin.HandlerFunc) gin.IRoutes
 }
 
+type Param struct {
+	Field       string
+	Description string
+}
+
 type Route struct {
 	Path        string
 	Method      string
 	Prefix      string
 	Description string
 	Middlewares []gin.HandlerFunc `json:"-"`
-	Children    []Route
+	Routes      []Route
+	Service     interface{} `json:"-"`
 	Handler     interface{} `json:"-"`
 	handler     reflect.Value
+	Params      []Param
+	//Alias       string
+}
+
+func (r *Route) BindParams(params ...Param) {
+
 }
 
 type Router interface {

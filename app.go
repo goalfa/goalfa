@@ -29,6 +29,7 @@ type App struct {
 	methods    []*exporter.Method
 	basics     *exporter.BasicTypes
 	models     *exporter.Structs
+	mode       Mode
 }
 
 func (p *App) SetVersion(version string) {
@@ -41,6 +42,11 @@ func (p *App) AddRouter(router ...Router) {
 
 func (p *App) SetEngine(engine *gin.Engine) {
 	p.engine = engine
+}
+
+func (p *App) AddService(service ...interface{}) (err error) {
+	// TODO Check Mode == Auto
+	return
 }
 
 func (p *App) SetExporter(addr string, options *exporter.Settings) {
@@ -184,7 +190,7 @@ func (p *App) prepareRoutes(in []Route) (out []Route, err error) {
 				out[i].Method = http.MethodPost
 			}
 		}
-		out[i].Children, err = p.prepareRoutes(out[i].Children)
+		out[i].Routes, err = p.prepareRoutes(out[i].Routes)
 		if err != nil {
 			return
 		}
@@ -199,7 +205,7 @@ func (p *App) registerRoutes(register Register, prefix string, routes []Route) (
 			err = p.registerRoutes(
 				register.Group(v.Prefix, v.Middlewares...),
 				strings.Join([]string{prefix, v.Prefix}, ""),
-				v.Children,
+				v.Routes,
 			)
 			if err != nil {
 				return
