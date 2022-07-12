@@ -1,11 +1,12 @@
-package alfa
+package goalfa
 
 import (
 	"context"
 	"fmt"
-	"github.com/datafony/alfa/binding"
-	"github.com/datafony/alfa/exporter"
 	"github.com/gin-gonic/gin"
+	"github.com/koyeo/goalfa/binding"
+	"github.com/koyeo/goalfa/exporter"
+	"github.com/koyeo/goalfa/logger"
 	"github.com/shopspring/decimal"
 	"net/http"
 	"reflect"
@@ -17,6 +18,8 @@ import (
 func New() *App {
 	return &App{
 		routeTable: &RouteTable{},
+		handlers:   map[string]int{},
+		routes:     map[string]string{},
 	}
 }
 
@@ -30,6 +33,8 @@ type App struct {
 	basics     *exporter.BasicTypes
 	models     *exporter.Structs
 	mode       Mode
+	handlers   map[string]int    // 用以处理路由方法重复，并以最新值替换旧值
+	routes     map[string]string // 用以检查路由（Method@Path） 是否重复
 }
 
 func (p *App) SetVersion(version string) {
@@ -42,11 +47,6 @@ func (p *App) AddRouter(router ...Router) {
 
 func (p *App) SetEngine(engine *gin.Engine) {
 	p.engine = engine
-}
-
-func (p *App) AddService(service ...interface{}) (err error) {
-	// TODO Check Mode == Auto
-	return
 }
 
 func (p *App) SetExporter(addr string, options *exporter.Settings) {
@@ -97,21 +97,28 @@ func (p *App) Run(addr string) {
 		routes []Route
 		err    error
 	)
+	
 	for _, router := range p.routers {
-		routes, err = p.prepareRoutes(router.Routes())
+		var r []Route
+		r, err = p.prepareRoutes(router.Routes())
 		if err != nil {
-			panic(err)
-		}
-		err = p.registerRoutes(p.engine, "", routes)
-		if err != nil {
-			panic(err)
+			logger.Error(err)
 			return
 		}
+		routes = append(routes, r...)
 	}
+	
+	err = p.registerRoutes(p.engine, "", routes)
+	if err != nil {
+		logger.Error(err)
+		return
+	}
+	
 	if p.exporter != nil {
 		p.exporter.Init(p.version, p.methods, p.models)
 		p.exporter.Run()
 	}
+	
 	err = p.engine.Run(addr)
 	if err != nil {
 		panic(err)
@@ -137,23 +144,24 @@ func (p *App) isHandler(t reflect.Type) error {
 	if t.Kind() != reflect.Func {
 		return fmt.Errorf("handler expect type func")
 	}
-	if t.NumIn() != 1 && t.NumIn() != 2 {
-		return fmt.Errorf("max 2 input parameters expected")
-	}
-	if t.NumIn() == 2 {
-		in := t.In(1)
-		for {
-			if in.Kind() != reflect.Ptr {
-				break
-			}
-			in = in.Elem()
-		}
-		if in.Kind() != reflect.Struct {
-			return fmt.Errorf("input parameter only acept struct")
-		}
-	}
+	//if t.NumIn() != 1 && t.NumIn() != 2 {
+	//	return fmt.Errorf("max 2 input parameters expected")
+	//}
+	// TODO Check Params Bind 参数
+	//if t.NumIn() == 2 {
+	//	in := t.In(1)
+	//	for {
+	//		if in.Kind() != reflect.Ptr {
+	//			break
+	//		}
+	//		in = in.Elem()
+	//	}
+	//	if in.Kind() != reflect.Struct {
+	//		return fmt.Errorf("input parameter only acept struct")
+	//	}
+	//}
 	if !p.isContext(t.In(0)) {
-		return fmt.Errorf("input first parameter expect type context.Context")
+		return fmt.Errorf("第一个入参期望 context.Context 类型，当前类型：%s", t.In(0).String())
 	}
 	if t.NumOut() != 1 && t.NumOut() != 2 {
 		return fmt.Errorf("max 2 output parameters expected")
@@ -168,22 +176,31 @@ func (p *App) isHandler(t reflect.Type) error {
 func (p *App) parseHandler(handler interface{}) (v reflect.Value, err error) {
 	v = reflect.ValueOf(handler)
 	if err = p.isHandler(v.Type()); err != nil {
-		err = fmt.Errorf("unexpect handler: %s: %s", v.Type(), err)
+		err = fmt.Errorf("路由方法格式错误: %s: %s", v.Type(), err)
 		return
 	}
 	return
 }
 
 // 预处理路由，反射路由处理器，并检查类型
-func (p *App) prepareRoutes(in []Route) (out []Route, err error) {
-	out = make([]Route, len(in))
-	for i := 0; i < len(in); i++ {
-		out[i] = in[i]
+func (p *App) prepareRoutes(routes []Route) (out []Route, err error) {
+	out = make([]Route, len(routes))
+	for i := 0; i < len(routes); i++ {
+		out[i] = routes[i]
+		// parse service and register exported methods
+		if out[i].Service.Implement != nil {
+			err = p.registerService(&out[i], out[i].Service.Implement, &out)
+			if err != nil {
+				return
+			}
+		}
+		
 		if out[i].Handler != nil {
 			out[i].handler, err = p.parseHandler(out[i].Handler)
 			if err != nil {
 				// TODO 标注处理器的文件及行号
 				//err = fmt.Errorf("parse handler '%s' error: %s",in[i].)
+				err = wrapHandlerError(out[i].Handler, err)
 				return
 			}
 			if out[i].Method == "" {
@@ -195,6 +212,46 @@ func (p *App) prepareRoutes(in []Route) (out []Route, err error) {
 			return
 		}
 	}
+	return
+}
+
+func methodInfo(method reflect.Value) *runtime.Func {
+	return runtime.FuncForPC(method.Pointer())
+}
+
+func wrapHandlerError(handler interface{}, err error) error {
+	v := reflect.ValueOf(handler)
+	f := runtime.FuncForPC(v.Pointer())
+	//fmt.Println(f.FileLine(v.Pointer()))
+	return fmt.Errorf("%s 路由解析错误: %s", f.Name(), err)
+}
+
+// 注册服务方法
+func (p *App) registerService(route *Route, service interface{}, out *[]Route) (err error) {
+	
+	rs := reflect.ValueOf(service)
+	if rs.NumMethod() == 0 {
+		return
+	}
+	
+	for i := 0; i < rs.NumMethod(); i++ {
+		if !rs.Type().Method(i).IsExported() {
+			continue
+		}
+		fmt.Println("服务方法：", rs.Method(i).String())
+		route.Routes = append(route.Routes, Route{
+			Path:    fmt.Sprintf("/%s", rs.Type().Method(i).Name),
+			Method:  Post,
+			Handler: rs.Method(i).Interface(),
+		})
+	}
+	
+	result, err := p.prepareRoutes(route.Routes)
+	if err != nil {
+		return
+	}
+	*out = append(*out, result...)
+	
 	return
 }
 
@@ -231,6 +288,8 @@ func (p *App) registerRoutes(register Register, prefix string, routes []Route) (
 				err = fmt.Errorf("unsupport method: %s", v.Method)
 				return
 			}
+			fmt.Println("处理器函数信息：", methodInfo(v.handler).Name())
+			//p.handlers[v.handler.Type().String()]
 		}
 	}
 	return

@@ -1,4 +1,4 @@
-package alfa
+package goalfa
 
 import (
 	"fmt"
@@ -36,6 +36,11 @@ type Param struct {
 	Description string
 }
 
+type Service struct {
+	Interface interface{}
+	Implement interface{}
+}
+
 type Route struct {
 	Path        string
 	Method      string
@@ -43,7 +48,7 @@ type Route struct {
 	Description string
 	Middlewares []gin.HandlerFunc `json:"-"`
 	Routes      []Route
-	Service     interface{} `json:"-"`
+	Service     Service     `json:"-"`
 	Handler     interface{} `json:"-"`
 	handler     reflect.Value
 	Params      []Param

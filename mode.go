@@ -1,4 +1,4 @@
-package alfa
+package goalfa
 
 type Mode int
 

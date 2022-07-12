@@ -1,30 +1,30 @@
 package main
 
 import (
-	alfa "github.com/datafony/alfa"
-	"github.com/datafony/alfa/example/foo/service"
-	"github.com/datafony/alfa/exporter"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	goalfa "github.com/koyeo/goalfa"
+	"github.com/koyeo/goalfa/example/foo/foo-service"
+	"github.com/koyeo/goalfa/exporter"
 )
 
 func main() {
-
+	
 	// gin 跨域配置
 	config := cors.DefaultConfig()
 	config.AllowHeaders = []string{"*"}
 	config.AllowAllOrigins = true
-
+	
 	// 自定义 gin 驱动
 	engine := gin.Default()
 	engine.Use(cors.New(config))
-
-	// alfa 实例
-	app := alfa.New()
+	
+	// goalfa 实例
+	app := goalfa.New()
 	app.SetVersion("1.0.0")
 	app.SetEngine(engine)
-	app.AddRouter(service.NewFooRouter(new(service.FooMock)))
-
+	app.AddRouter(foo_service.NewFooRouter(new(foo_service.FooMock)))
+	
 	// App 导出器配置
 	app.SetExporter(":9090", &exporter.Settings{
 		Project: "Foo",
@@ -46,6 +46,6 @@ func main() {
 		//	},
 		//},
 	})
-
+	
 	app.Run(":8080")
 }

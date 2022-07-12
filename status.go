@@ -1,4 +1,4 @@
-package alfa
+package goalfa
 
 type Status struct {
 	Detail interface{}

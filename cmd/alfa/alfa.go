@@ -2,8 +2,8 @@ package main
 
 import (
 	"fmt"
-	"github.com/datafony/alfa/assets"
-	"github.com/datafony/alfa/cmd/alfa/sdk"
+	"github.com/koyeo/goalfa/assets"
+	"github.com/koyeo/goalfa/cmd/goalfa/sdk"
 	"github.com/spf13/cobra"
 	"log"
 	"net/http"

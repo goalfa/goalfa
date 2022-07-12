@@ -11,9 +11,9 @@ import (
 	"strconv"
 	"strings"
 	"time"
-
-	"github.com/datafony/alfa/internal/bytesconv"
-	"github.com/datafony/alfa/internal/json"
+	
+	"github.com/koyeo/goalfa/internal/bytesconv"
+	"github.com/koyeo/goalfa/internal/json"
 )
 
 var errUnknownType = errors.New("unknown type")
@@ -43,7 +43,7 @@ func mapFormByTag(ptr interface{}, form map[string][]string, tag string) error {
 		}
 		return setFormMap(ptr, form)
 	}
-
+	
 	return mappingByPtr(ptr, formSource(form), tag)
 }
 
@@ -70,9 +70,9 @@ func mapping(value reflect.Value, field reflect.StructField, setter setter, tag 
 	if field.Tag.Get(tag) == "-" { // just ignoring this field
 		return false, nil
 	}
-
+	
 	var vKind = value.Kind()
-
+	
 	if vKind == reflect.Ptr {
 		var isNew bool
 		vPtr := value
@@ -89,7 +89,7 @@ func mapping(value reflect.Value, field reflect.StructField, setter setter, tag 
 		}
 		return isSetted, nil
 	}
-
+	
 	if vKind != reflect.Struct || !field.Anonymous {
 		ok, err := tryToSetValue(value, field, setter, tag)
 		if err != nil {
@@ -99,10 +99,10 @@ func mapping(value reflect.Value, field reflect.StructField, setter setter, tag 
 			return true, nil
 		}
 	}
-
+	
 	if vKind == reflect.Struct {
 		tValue := value.Type()
-
+		
 		var isSetted bool
 		for i := 0; i < value.NumField(); i++ {
 			sf := tValue.Field(i)
@@ -128,27 +128,27 @@ type setOptions struct {
 func tryToSetValue(value reflect.Value, field reflect.StructField, setter setter, tag string) (bool, error) {
 	var tagValue string
 	var setOpt setOptions
-
+	
 	tagValue = field.Tag.Get(tag)
 	tagValue, opts := head(tagValue, ",")
-
+	
 	if tagValue == "" { // default value is FieldName
 		tagValue = field.Name
 	}
 	if tagValue == "" { // when field is "emptyField" variable
 		return false, nil
 	}
-
+	
 	var opt string
 	for len(opts) > 0 {
 		opt, opts = head(opts, ",")
-
+		
 		if k, v := head(opt, "="); k == "default" {
 			setOpt.isDefaultExists = true
 			setOpt.defaultValue = v
 		}
 	}
-
+	
 	return setter.TrySet(value, field, tagValue, setOpt)
 }
 
@@ -157,7 +157,7 @@ func setByForm(value reflect.Value, field reflect.StructField, form map[string][
 	if !ok && !opt.isDefaultExists {
 		return false, nil
 	}
-
+	
 	switch value.Kind() {
 	case reflect.Slice:
 		if !ok {
@@ -177,7 +177,7 @@ func setByForm(value reflect.Value, field reflect.StructField, form map[string][
 		if !ok {
 			val = opt.defaultValue
 		}
-
+		
 		if len(vs) > 0 {
 			val = vs[0]
 		}
@@ -282,35 +282,35 @@ func setTimeField(val string, structField reflect.StructField, value reflect.Val
 	if timeFormat == "" {
 		timeFormat = time.RFC3339
 	}
-
+	
 	switch tf := strings.ToLower(timeFormat); tf {
 	case "unix", "unixnano":
 		tv, err := strconv.ParseInt(val, 10, 64)
 		if err != nil {
 			return err
 		}
-
+		
 		d := time.Duration(1)
 		if tf == "unixnano" {
 			d = time.Second
 		}
-
+		
 		t := time.Unix(tv/int64(d), tv%int64(d))
 		value.Set(reflect.ValueOf(t))
 		return nil
-
+		
 	}
-
+	
 	if val == "" {
 		value.Set(reflect.ValueOf(time.Time{}))
 		return nil
 	}
-
+	
 	l := time.Local
 	if isUTC, _ := strconv.ParseBool(structField.Tag.Get("time_utc")); isUTC {
 		l = time.UTC
 	}
-
+	
 	if locTag := structField.Tag.Get("time_location"); locTag != "" {
 		loc, err := time.LoadLocation(locTag)
 		if err != nil {
@@ -318,12 +318,12 @@ func setTimeField(val string, structField reflect.StructField, value reflect.Val
 		}
 		l = loc
 	}
-
+	
 	t, err := time.ParseInLocation(timeFormat, val, l)
 	if err != nil {
 		return err
 	}
-
+	
 	value.Set(reflect.ValueOf(t))
 	return nil
 }
@@ -367,7 +367,7 @@ func head(str, sep string) (head string, tail string) {
 
 func setFormMap(ptr interface{}, form map[string][]string) error {
 	el := reflect.TypeOf(ptr).Elem()
-
+	
 	if el.Kind() == reflect.Slice {
 		ptrMap, ok := ptr.(map[string][]string)
 		if !ok {
@@ -376,10 +376,10 @@ func setFormMap(ptr interface{}, form map[string][]string) error {
 		for k, v := range form {
 			ptrMap[k] = v
 		}
-
+		
 		return nil
 	}
-
+	
 	ptrMap, ok := ptr.(map[string]string)
 	if !ok {
 		return errors.New("cannot convert to map of strings")
@@ -387,6 +387,6 @@ func setFormMap(ptr interface{}, form map[string][]string) error {
 	for k, v := range form {
 		ptrMap[k] = v[len(v)-1] // pick last
 	}
-
+	
 	return nil
 }

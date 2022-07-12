@@ -14,13 +14,13 @@
 ## 包安装
 
 ```
-go get -u github.com/datafony/alfa
+go get -u github.com/koyeo/goalfa
 ```
 
 ## 命令行工具安装
 
 ```
-go get -u github.com/postlink/alfa/cmd/alfa
+go get -u github.com/postlink/goalfa/cmd/goalfa
 ```
 
 ## 快速上手
@@ -37,9 +37,9 @@ package main
 import (
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
-	"github.com/datafony/alfa"
-	"github.com/datafony/alfa/example/foo/service"
-	"github.com/datafony/alfa/exporter"
+	"github.com/koyeo/goalfa"
+	"github.com/koyeo/goalfa/example/foo/service"
+	"github.com/koyeo/goalfa/exporter"
 )
 
 func main() {
@@ -53,8 +53,8 @@ func main() {
 	engine := gin.Default()
 	engine.Use(cors.New(config))
 	
-	// 配置 alfa 实例
-	api := alfa.New()
+	// 配置 goalfa 实例
+	api := goalfa.New()
 	api.SetVersion("1.0.0")
 	api.SetEngine(engine)
 	api.AddRouter(service.NewFooRouter(new(service.FooMock)))
@@ -84,7 +84,7 @@ func main() {
 package service
 
 import (
-	"github.com/datafony/alfa"
+	"github.com/koyeo/goalfa"
 )
 
 func NewFooRouter(service FooService) *FooRouter {
@@ -95,10 +95,10 @@ type FooRouter struct {
 	service FooService
 }
 
-func (f FooRouter) Routes() []alfa.Route {
-	return []alfa.Route{
-		{Method: alfa.Get, Handler: f.service.Ping},
-		{Method: alfa.Get, Handler: f.service.QueryPost},
+func (f FooRouter) Routes() []goalfa.Route {
+	return []goalfa.Route{
+		{Method: goalfa.Get, Handler: f.service.Ping},
+		{Method: goalfa.Get, Handler: f.service.QueryPost},
 		{Handler: f.service.AddPost},
 	}
 }
@@ -192,21 +192,21 @@ func (ctx context.Context [, in struct])([out interface{},] err error)
 
 ## Router 定义
 
-Router 用来描述服务的 API 匹配关系，同时可以在 Router 中定义中间件、前缀等。实现 `alfa.Router` 即可实现一个 `Router`。
+Router 用来描述服务的 API 匹配关系，同时可以在 Router 中定义中间件、前缀等。实现 `goalfa.Router` 即可实现一个 `Router`。
 
 ```go
 type UserRouter struct {
 service UserService
 }
 
-func (u UserRouter) Routers() []alfa.Route {
-return []alfa.Route{
+func (u UserRouter) Routers() []goalfa.Route {
+return []goalfa.Route{
 {
 Prefix: "/api",             // 定义路由分组前缀
 Middleware: SomeMiddleware, // 定义分组中间件
-Children: []alfa.Route{
+Children: []goalfa.Route{
 { Handler: p.service.Register },               // 默认采用 Post 方法，Handler 方法名作为路径    
-{ Method: alfa.Get, Handler: p.service.Ping }, // 指定请求方法
+{ Method: goalfa.Get, Handler: p.service.Ping }, // 指定请求方法
 { Path: "/login", Handler: p.service.Login },  // 指定请求路径
 },
 }    

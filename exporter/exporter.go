@@ -2,11 +2,11 @@ package exporter
 
 import (
 	"fmt"
-	"github.com/datafony/alfa/assets"
-	"github.com/datafony/alfa/utils"
 	"github.com/gin-gonic/gin"
 	"github.com/gozelle/_log"
 	"github.com/gozelle/_log/wrap"
+	"github.com/koyeo/goalfa/assets"
+	"github.com/koyeo/goalfa/utils"
 	"github.com/ttacon/chalk"
 	"log"
 	"net/http"
@@ -57,18 +57,18 @@ func Cors() gin.HandlerFunc {
 			//允许客户端传递校验信息比如 cookie (重要)
 			c.Header("Access-Control-Allow-Credentials", "true")
 		}
-
+		
 		//允许类型校验
 		if method == "OPTIONS" {
 			c.JSON(http.StatusOK, "ok!")
 		}
-
+		
 		defer func() {
 			if err := recover(); err != nil {
 				log.Printf("Panic info is: %v", err)
 			}
 		}()
-
+		
 		c.Next()
 	}
 }
@@ -216,9 +216,9 @@ func (p *Exporter) initMakers() {
 }
 
 func (p *Exporter) ReactField(elem reflect.Type, name, param, label string, validator *Validator) *Field {
-
+	
 	elem = utils.TypeElem(elem)
-
+	
 	field := new(Field)
 	field.Name = name
 	field.Param = param
@@ -229,7 +229,7 @@ func (p *Exporter) ReactField(elem reflect.Type, name, param, label string, vali
 	field.IsStruct = isStruct
 	field.IsBasic = isBasic
 	field.IsArray = isArray
-
+	
 	return field
 }
 
@@ -249,9 +249,9 @@ func (p *Exporter) reflectFieldType(field *Field, elem reflect.Type) (typeName s
 
 // ReflectStruct 反射转换输入输出的字段信息
 func (p *Exporter) ReflectStruct(field *Field, elem reflect.Type, depth int) string {
-
+	
 	elem = utils.TypeElem(elem)
-
+	
 	name := elem.Name()
 	pkg := elem.PkgPath()
 	fields := make([]*Field, 0)

@@ -9,8 +9,8 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-
-	"github.com/datafony/alfa/internal/json"
+	
+	"github.com/koyeo/goalfa/internal/json"
 )
 
 // EnableDecoderUseNumber is used to call the UseNumber method on the JSON

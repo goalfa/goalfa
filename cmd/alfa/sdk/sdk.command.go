@@ -4,7 +4,7 @@ import (
 	"bufio"
 	"encoding/json"
 	"fmt"
-	"github.com/datafony/alfa/exporter"
+	"github.com/koyeo/goalfa/exporter"
 	"github.com/spf13/cobra"
 	"io/ioutil"
 	"net/http"
@@ -103,7 +103,7 @@ func request(address, lang, pkg string) (files []*exporter.File, err error) {
 	defer func() {
 		_ = res.Body.Close()
 	}()
-
+	
 	body, err := ioutil.ReadAll(res.Body)
 	if err != nil {
 		err = fmt.Errorf("SDK 下载读取错误: %s", err)

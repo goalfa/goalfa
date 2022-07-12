@@ -1,8 +1,9 @@
-module github.com/datafony/alfa
+module github.com/koyeo/goalfa
 
 go 1.16
 
 require (
+	github.com/fatih/color v1.13.0 // indirect
 	github.com/fatih/structs v1.1.0
 	github.com/flosch/pongo2/v5 v5.0.0
 	github.com/gin-contrib/cors v1.3.1
