@@ -222,7 +222,6 @@ func methodInfo(method reflect.Value) *runtime.Func {
 func wrapHandlerError(handler interface{}, err error) error {
 	v := reflect.ValueOf(handler)
 	f := runtime.FuncForPC(v.Pointer())
-	//fmt.Println(f.FileLine(v.Pointer()))
 	return fmt.Errorf("%s 路由解析错误: %s", f.Name(), err)
 }
 
