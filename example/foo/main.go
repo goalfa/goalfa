@@ -23,7 +23,7 @@ func main() {
 	app := goalfa.New()
 	app.SetVersion("1.0.0")
 	app.SetEngine(engine)
-	app.AddRouter(foo_service.NewFooRouter(new(foo_service.FooMock)))
+	app.AddRouter(fooService.NewFooRouter(new(fooService.FooMock)))
 	
 	// App 导出器配置
 	app.SetExporter(":9090", &exporter.Settings{

@@ -17,9 +17,9 @@ func (u UserService) Forgot(ctx context.Context, username string) (err error) {
 }
 
 func Test_registerService(t *testing.T) {
-	route := Route{}
-	service := UserService{}
-	out := make([]Route, 0)
-	app := New()
-	app.registerService(&route, service, &out)
+	//route := Route{}
+	//service := UserService{}
+	//out := make([]Route, 0)
+	//app := New()
+	//app.prepareService(&route, service, &out)
 }

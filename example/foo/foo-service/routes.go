@@ -1,6 +1,8 @@
-package foo_service
+package fooService
 
-import "github.com/koyeo/goalfa"
+import (
+	"github.com/koyeo/goalfa"
+)
 
 func NewFooRouter(service FooService) *FooRouter {
 	return &FooRouter{service: service}
@@ -14,7 +16,7 @@ func (f FooRouter) Routes() []goalfa.Route {
 	return []goalfa.Route{
 		{
 			Service: goalfa.Service{
-				Interface: (*FooService)(nil),
+				//Interface: (*FooService)(nil),
 				Implement: f.service,
 			},
 			Routes: []goalfa.Route{

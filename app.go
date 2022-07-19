@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"reflect"
 	"runtime"
+	"runtime/debug"
 	"strings"
 	"time"
 )
@@ -33,6 +34,7 @@ type App struct {
 	basics     *exporter.BasicTypes
 	models     *exporter.Structs
 	mode       Mode
+	registers  []Route           // 最终注册的路由列表
 	handlers   map[string]int    // 用以处理路由方法重复，并以最新值替换旧值
 	routes     map[string]string // 用以检查路由（Method@Path） 是否重复
 }
@@ -93,37 +95,69 @@ func (p *App) Run(addr string) {
 	if p.engine == nil {
 		p.engine = gin.Default()
 	}
-	var (
-		routes []Route
-		err    error
-	)
+	
+	info, _ := debug.ReadBuildInfo()
+	fmt.Println("info:", info.Main.Path)
 	
 	for _, router := range p.routers {
-		var r []Route
-		r, err = p.prepareRoutes(router.Routes())
-		if err != nil {
-			logger.Error(err)
-			return
-		}
-		routes = append(routes, r...)
+		
+		router.Routes()
+		
+		r := reflect.ValueOf(router)
+		fmt.Println(r.String())
+		fmt.Println(r.Elem().Type().PkgPath())
+		fmt.Println(r.Elem().Type().String())
+		
+		//info := p.parseHandlerInfoValue(r.Elem())
+		//fmt.Println(info.Name, info.Location)
+		//debug.PrintStack()
 	}
 	
-	err = p.registerRoutes(p.engine, "", routes)
-	if err != nil {
-		logger.Error(err)
-		return
+	_, file, no, ok := runtime.Caller(0)
+	if ok {
+		fmt.Printf("called from %s#%d\n", file, no)
 	}
 	
-	if p.exporter != nil {
-		p.exporter.Init(p.version, p.methods, p.models)
-		p.exporter.Run()
+	//var err error
+	
+	//for _, router := range p.routers {
+	//	var routes []Route
+	//	routes, err = p.prepareRoutes(router.Routes())
+	//	if err != nil {
+	//		logger.Error(err)
+	//		return
+	//	}
+	//	p.addRegisterRoute(routes...)
+	//}
+	//
+	//err = p.registerRoutes(p.engine, "", p.registers)
+	//if err != nil {
+	//	logger.Error(err)
+	//	return
+	//}
+	//
+	//if p.exporter != nil {
+	//	p.exporter.Init(p.version, p.methods, p.models)
+	//	p.exporter.Run()
+	//}
+	//
+	//err = p.engine.Run(addr)
+	//if err != nil {
+	//	panic(err)
+	//	return
+	//}
+}
+
+// 添加待注册的路由
+// ⚠️ 如果自定义方法路由有被覆盖的情况，则输出警告
+func (p *App) addRegisterRoute(routes ...Route) {
+	for _, v := range routes {
+		//if v.Handler != nil {
+		//	p.handlers[]
+		//}
+		p.registers = append(p.registers, v)
 	}
 	
-	err = p.engine.Run(addr)
-	if err != nil {
-		panic(err)
-		return
-	}
 }
 
 // 检查参数是否为 error 类型
@@ -189,7 +223,7 @@ func (p *App) prepareRoutes(routes []Route) (out []Route, err error) {
 		out[i] = routes[i]
 		// parse service and register exported methods
 		if out[i].Service.Implement != nil {
-			err = p.registerService(&out[i], out[i].Service.Implement, &out)
+			err = p.prepareService(&out[i], out[i].Service, &out)
 			if err != nil {
 				return
 			}
@@ -226,7 +260,12 @@ func wrapHandlerError(handler interface{}, err error) error {
 }
 
 // 注册服务方法
-func (p *App) registerService(route *Route, service interface{}, out *[]Route) (err error) {
+func (p *App) prepareService(route *Route, service Service, out *[]Route) (err error) {
+	
+	if service.Interface == nil {
+		p.serviceInfo(service.Implement)
+		logger.Warn("服务路由未绑定 Interface，将解析服务真实实现的导出方法未路由")
+	}
 	
 	rs := reflect.ValueOf(service)
 	if rs.NumMethod() == 0 {
@@ -252,6 +291,14 @@ func (p *App) registerService(route *Route, service interface{}, out *[]Route) (
 	*out = append(*out, result...)
 	
 	return
+}
+
+func (p *App) serviceInfo(service interface{}) {
+	//fmt.Println(service)
+	//fmt.Println(reflect.ValueOf(service).Elem().Type().String())
+	//info := p.parseHandlerInfoValue(reflect.ValueOf(service))
+	//fmt.Println(info.Name)
+	//fmt.Println(info.Location)
 }
 
 // 递归注册路由树，处理中间件前缀逻辑，代理路由处理器为 Gin 控制器

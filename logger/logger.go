@@ -13,3 +13,7 @@ func Panic(err error) {
 func Error(err error) {
 	log.Println(color.RedString(fmt.Sprintf("%s", err)))
 }
+
+func Warn(msg string) {
+	log.Println(color.YellowString(msg))
+}

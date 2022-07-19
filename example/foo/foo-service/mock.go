@@ -1,4 +1,4 @@
-package foo_service
+package fooService
 
 import (
 	"context"
