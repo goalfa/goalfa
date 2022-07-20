@@ -3,17 +3,20 @@ package logger
 import (
 	"fmt"
 	"github.com/fatih/color"
-	"log"
 )
 
 func Panic(err error) {
-	log.Panicln(color.RedString(fmt.Sprintf("%s", err)))
+	panic(color.RedString(fmt.Sprintf("%s", err)))
 }
 
 func Error(err error) {
-	log.Println(color.RedString(fmt.Sprintf("%s", err)))
+	fmt.Println(color.RedString("❌[错误]:"), err)
 }
 
 func Warn(msg string) {
-	log.Println(color.YellowString(msg))
+	fmt.Println(color.YellowString("⚠️[警告]:"), msg)
+}
+
+func Success(msg string) {
+	fmt.Println(msg)
 }

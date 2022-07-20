@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/gin-gonic/gin"
+	"github.com/gozelle/_dump"
 	"github.com/koyeo/goalfa/binding"
 	"github.com/koyeo/goalfa/exporter"
 	"github.com/koyeo/goalfa/logger"
@@ -11,7 +12,6 @@ import (
 	"net/http"
 	"reflect"
 	"runtime"
-	"runtime/debug"
 	"strings"
 	"time"
 )
@@ -96,40 +96,19 @@ func (p *App) Run(addr string) {
 		p.engine = gin.Default()
 	}
 	
-	info, _ := debug.ReadBuildInfo()
-	fmt.Println("info:", info.Main.Path)
+	var err error
 	
 	for _, router := range p.routers {
-		
-		router.Routes()
-		
-		r := reflect.ValueOf(router)
-		fmt.Println(r.String())
-		fmt.Println(r.Elem().Type().PkgPath())
-		fmt.Println(r.Elem().Type().String())
-		
-		//info := p.parseHandlerInfoValue(r.Elem())
-		//fmt.Println(info.Name, info.Location)
-		//debug.PrintStack()
+		var routes []Route
+		routes, err = p.prepareRoutes(router.Routes())
+		if err != nil {
+			logger.Error(err)
+			return
+		}
+		p.addRegisterRoute(routes...)
 	}
 	
-	_, file, no, ok := runtime.Caller(0)
-	if ok {
-		fmt.Printf("called from %s#%d\n", file, no)
-	}
-	
-	//var err error
-	
-	//for _, router := range p.routers {
-	//	var routes []Route
-	//	routes, err = p.prepareRoutes(router.Routes())
-	//	if err != nil {
-	//		logger.Error(err)
-	//		return
-	//	}
-	//	p.addRegisterRoute(routes...)
-	//}
-	//
+	_dump.Json(p.registers)
 	//err = p.registerRoutes(p.engine, "", p.registers)
 	//if err != nil {
 	//	logger.Error(err)
@@ -220,31 +199,42 @@ func (p *App) parseHandler(handler interface{}) (v reflect.Value, err error) {
 func (p *App) prepareRoutes(routes []Route) (out []Route, err error) {
 	out = make([]Route, len(routes))
 	for i := 0; i < len(routes); i++ {
-		out[i] = routes[i]
+		route := routes[i]
+		route.Prefix = strings.TrimSpace(route.Prefix)
+		route.Method = strings.TrimSpace(route.Method)
+		route.Path = strings.TrimSpace(route.Path)
+		
 		// parse service and register exported methods
-		if out[i].Service.Implement != nil {
-			err = p.prepareService(&out[i], out[i].Service, &out)
+		if route.Service.Instance != nil {
+			var serviceRoutes []Route
+			serviceRoutes, err = p.prepareService(route.Service)
 			if err != nil {
 				return
+			}
+			route.Routes = append(serviceRoutes, route.Routes...)
+		}
+		
+		if route.Handler != nil {
+			route.handler, err = p.parseHandler(route.Handler)
+			if err != nil {
+				err = wrapHandlerError(route.Handler, err)
+				return
+			}
+			route.handlerInfo = p.parseHandlerInfoValue(route.handler)
+			if route.Method == "" {
+				route.Method = http.MethodPost
+			}
+			if route.Path == "" {
+				route.Path = fmt.Sprintf("/%s", route.handlerInfo.Name)
 			}
 		}
 		
-		if out[i].Handler != nil {
-			out[i].handler, err = p.parseHandler(out[i].Handler)
-			if err != nil {
-				// TODO 标注处理器的文件及行号
-				//err = fmt.Errorf("parse handler '%s' error: %s",in[i].)
-				err = wrapHandlerError(out[i].Handler, err)
-				return
-			}
-			if out[i].Method == "" {
-				out[i].Method = http.MethodPost
-			}
-		}
-		out[i].Routes, err = p.prepareRoutes(out[i].Routes)
+		route.Routes, err = p.prepareRoutes(route.Routes)
 		if err != nil {
 			return
 		}
+		
+		out[i] = route
 	}
 	return
 }
@@ -260,45 +250,71 @@ func wrapHandlerError(handler interface{}, err error) error {
 }
 
 // 注册服务方法
-func (p *App) prepareService(route *Route, service Service, out *[]Route) (err error) {
+func (p *App) prepareService(service Service) (out []Route, err error) {
 	
-	if service.Interface == nil {
-		p.serviceInfo(service.Implement)
-		logger.Warn("服务路由未绑定 Interface，将解析服务真实实现的导出方法未路由")
-	}
-	
-	rs := reflect.ValueOf(service)
-	if rs.NumMethod() == 0 {
+	if service.Instance == nil {
+		err = fmt.Errorf("服务绑定实例 Instance 为 nil")
 		return
 	}
 	
-	for i := 0; i < rs.NumMethod(); i++ {
-		if !rs.Type().Method(i).IsExported() {
+	sv := reflect.ValueOf(service.Instance)
+	if sv.NumMethod() == 0 {
+		logger.Warn(fmt.Sprintf("服务 %s 没有可用的导出方法", sv.String()))
+		return
+	}
+	
+	var st reflect.Type
+	var interfaceMethods map[string]bool
+	if service.Interface == nil {
+		logger.Warn("服务路由未绑定 Interface，将解析服务真实实现的导出方法未路由")
+	} else {
+		st = reflect.TypeOf(service.Interface)
+		for {
+			if st.Kind() != reflect.Ptr {
+				break
+			}
+			st = st.Elem()
+		}
+		if st.NumMethod() == 0 {
+			logger.Warn(fmt.Sprintf("接口 %s 没有可用的导出方法", st.String()))
+			return
+		}
+		
+		if !sv.Type().Implements(st) {
+			err = fmt.Errorf("服务 %s 为实现接口 %s", sv.String(), st.String())
+			return
+		}
+		interfaceMethods = map[string]bool{}
+		for i := 0; i < st.NumMethod(); i++ {
+			interfaceMethods[st.Method(i).Name] = true
+		}
+	}
+	for i := 0; i < sv.NumMethod(); i++ {
+		mt := sv.Type().Method(i)
+		if !mt.IsExported() || !p.isInterfaceMethod(interfaceMethods, mt.Name) {
 			continue
 		}
-		fmt.Println("服务方法：", rs.Method(i).String())
-		route.Routes = append(route.Routes, Route{
-			Path:    fmt.Sprintf("/%s", rs.Type().Method(i).Name),
+		out = append(out, Route{
+			Path:    fmt.Sprintf("/%s", sv.Type().Method(i).Name),
 			Method:  Post,
-			Handler: rs.Method(i).Interface(),
+			handler: sv.Method(i),
 		})
 	}
 	
-	result, err := p.prepareRoutes(route.Routes)
+	out, err = p.prepareRoutes(out)
 	if err != nil {
 		return
 	}
-	*out = append(*out, result...)
 	
 	return
 }
 
-func (p *App) serviceInfo(service interface{}) {
-	//fmt.Println(service)
-	//fmt.Println(reflect.ValueOf(service).Elem().Type().String())
-	//info := p.parseHandlerInfoValue(reflect.ValueOf(service))
-	//fmt.Println(info.Name)
-	//fmt.Println(info.Location)
+func (p *App) isInterfaceMethod(interfaceMethods map[string]bool, name string) bool {
+	if interfaceMethods == nil {
+		return true
+	}
+	_, ok := interfaceMethods[name]
+	return ok
 }
 
 // 递归注册路由树，处理中间件前缀逻辑，代理路由处理器为 Gin 控制器

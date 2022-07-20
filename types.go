@@ -38,7 +38,7 @@ type Param struct {
 
 type Service struct {
 	Interface interface{}
-	Implement interface{}
+	Instance  interface{}
 }
 
 type Route struct {
@@ -48,11 +48,11 @@ type Route struct {
 	Description string
 	Middlewares []gin.HandlerFunc `json:"-"`
 	Routes      []Route
+	Params      []Param
 	Service     Service     `json:"-"`
 	Handler     interface{} `json:"-"`
 	handler     reflect.Value
-	Params      []Param
-	//Alias       string
+	handlerInfo HandlerInfo
 }
 
 func (r *Route) BindParams(params ...Param) {

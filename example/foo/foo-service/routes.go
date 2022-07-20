@@ -16,14 +16,12 @@ func (f FooRouter) Routes() []goalfa.Route {
 	return []goalfa.Route{
 		{
 			Service: goalfa.Service{
-				//Interface: (*FooService)(nil),
-				Implement: f.service,
+				Interface: (*FooService)(nil),
+				Instance:  f.service,
 			},
 			Routes: []goalfa.Route{
-				{Method: goalfa.Get, Path: "/download", Handler: f.service.Ping},
-				//{Method: goalfa.Get, Handler: f.service.GetUserByIdStruct},
+				{Method: goalfa.Get, Path: "/ping", Handler: f.service.Ping},
 				{Method: goalfa.Get, Params: []goalfa.Param{{Field: "user_id"}}, Handler: f.service.GetUserById},
-				{Method: goalfa.Get, Params: []goalfa.Param{{Field: "group_id"}}, Handler: f.service.GetUserById},
 				{Method: goalfa.Get, Params: []goalfa.Param{{Field: "id"}, {Field: "filter"}}, Handler: f.service.GetUserById},
 			},
 		},
